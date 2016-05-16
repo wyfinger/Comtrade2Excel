@@ -89,7 +89,7 @@ Else
   If strRez = "" Then
     GetInt = 0
   Else
-    GetInt = strRez
+    GetInt = Val(strRez)
   End If
 End If
 
@@ -173,6 +173,40 @@ ReadBINARYLine = Split(ResultStr, ",")
 
 End Function
 
+Private Function ReadBINARYLineEasy(ByVal intFile As Integer, ByVal intLen As Integer, ByVal intASig As Integer, ByVal intDSig As Integer)
+'
+' Чтение одной строки данных из DAT файла BINARY EASY формата,
+' в результате нет номера и времени отсчета.
+
+Dim ByteLine() As Byte
+ReDim ByteLine(intLen - 1) As Byte
+
+Get #intFile, , ByteLine
+
+Dim ResultStr As String
+
+' Читаем аналоговые сигналы
+Dim i As Integer
+For i = 0 To intASig - 1
+  ResultStr = ResultStr & "," & Combine2Byte(ByteLine(i * 2), ByteLine(i * 2 + 1))
+Next
+
+' Читаем дискретные сигналы
+For i = 0 To intDSig - 1
+  If (ByteLine(intASig * 2 + i \ 8) And (2 ^ (i Mod 8))) = (2 ^ (i Mod 8)) Then
+    ResultStr = ResultStr & ",1"
+  Else
+    ResultStr = ResultStr & ",0"
+  End If
+Next
+
+' Убираем первую запятую
+ResultStr = Mid(ResultStr, 2, Len(ResultStr))
+
+' Декодируем массив
+ReadBINARYLineEasy = Split(ResultStr, ",")
+
+End Function
 
 Private Function LoadDataASCII(strDATFile As String) As Boolean
 '
@@ -224,7 +258,7 @@ Dim Line
 Dim LineLen As Integer
 Dim FileSize As Long
 
-' Количество байтов в однолй записи
+' Количество байтов в одной записи
 LineLen = 8 + (intASig * 2) + (intDSig \ 8) + ((intDSig Mod 8) And 1)
 
 On Error GoTo err_read_dat_file
@@ -248,7 +282,7 @@ On Error GoTo err_read_dat_file
   
 err_read_dat_file:
   If Not errReadDatFile Then
-    LoadDataBINARY = False  ' Error, возникла ошибка при чтении ASCII DAT файла
+    LoadDataBINARY = False  ' Error, возникла ошибка при чтении DAT файла
     Exit Function
   End If
 On Error GoTo 0
@@ -257,6 +291,57 @@ LoadDataBINARY = True
 
 End Function
 
+
+Private Function LoadDataBINARYEasy(strDATFile As String, ByVal intASig As Integer, ByVal intDSig As Integer) As Boolean
+'
+' Чтение файла данных в формате BINARY дебильного Бреслера,
+' Они в конце CFG файла добаляют EASY= 1 и не пишут первые 8 байт в DAT файле:
+' номер и время отсчета.
+
+Dim intDATFile As Integer
+Dim i As Integer
+Dim j As Integer
+Dim Line
+Dim LineLen As Integer
+Dim FileSize As Long
+Dim stepPeriod As Long
+
+' Количество байтов в одной записи, на 8 меньше, чем в LoadDataBINARY
+LineLen = (intASig * 2) + (intDSig \ 8) + ((intDSig Mod 8) And 1)
+
+On Error GoTo err_read_dat_file
+  Dim errReadDatFile As Boolean
+  intDATFile = FreeFile
+  FileSize = FileLen(strDATFile)
+  Open strDATFile For Binary Access Read Lock Write As #intDATFile Len = LineLen
+  Seek #intDATFile, 1
+
+  stepPeriod = 1000000 / objSheet.Cells(5, 2).Value  ' мкс в одном шаге
+
+  i = 20
+  Do While (Not EOF(intDATFile)) And (Seek(intDATFile) < FileSize) And (i <= objSheet.Cells(6, 3).Value + 19)
+    Line = ReadBINARYLineEasy(intDATFile, LineLen, intASig, intDSig)
+    objSheet.Cells(i, 2).Value = i - 20 + 1     ' номер
+    objSheet.Cells(i, 3).Value = (i - 20) * stepPeriod ' время
+    For j = 0 To UBound(Line)
+      objSheet.Cells(i, j + 4).Value = ArrGet(Line, j)
+    Next
+    i = i + 1
+  Loop
+
+  Close #intDATFile
+  errReadDatFile = True
+  
+err_read_dat_file:
+  If Not errReadDatFile Then
+    LoadDataBINARYEasy = False  ' Error, возникла ошибка при чтении DAT файла
+    Exit Function
+  End If
+On Error GoTo 0
+
+LoadDataBINARYEasy = True
+
+End Function
 
 Private Function OpenComtrade(strFileName As String) As Integer
 '
@@ -345,7 +430,7 @@ Dim j As Integer
 For i = 1 To intASig
   Line = ReadASCIILine(intCFGFile)
   For j = 1 To 10
-    objSheet.Cells(j + 9, i + 3).Value = ArrGet(Line, j - 1)
+    objSheet.Cells(j + 9, i + 3).Value = Replace(ArrGet(Line, j - 1), ",", ".")
   Next
 Next
 
@@ -390,6 +475,12 @@ Dim strDATFormat As String
 Line = ReadASCIILine(intCFGFile)
 strDATFormat = UCase$(ArrGet(Line, 0))
 
+' Если BINARY - проверим нет ли дальше "EASY= 1"
+On Error GoTo err_easy
+  Dim strEASY As String
+  Line = ReadASCIILine(intCFGFile)
+  strEASY = UCase$(Replace(ArrGet(Line, 0), " ", ""))
+err_easy:
 Close #intCFGFile
 
 ' Читаем данные в зависимости от формата
@@ -397,7 +488,11 @@ Dim ReadOk As Boolean
 If strDATFormat = "ASCII" Then
   ReadOk = LoadDataASCII(strDATFile)
 ElseIf strDATFormat = "BINARY" Then
-  ReadOk = LoadDataBINARY(strDATFile, intASig, intDSig)
+  If strEASY = "EASY=1" Then
+    ReadOk = LoadDataBINARYEasy(strDATFile, intASig, intDSig)
+  Else
+    ReadOk = LoadDataBINARY(strDATFile, intASig, intDSig)
+  End If
 Else
   OpenComtrade = 5  ' Error, ошибка в формате DAT файла, должно быть ASCII или BINARY
   Exit Function
@@ -474,7 +569,7 @@ Dim j As Integer
 For i = 1 To intASig
   Line = ""
   For j = 1 To 10
-    Line = Line & "," & objSheet.Cells(j + 9, i + 3).Value
+    Line = Line & "," & Replace(objSheet.Cells(j + 9, i + 3).Value, ",", ".")
   Next
   Line = Right(Line, Len(Line) - 1)
   Print #intCFGFile, Line
@@ -483,18 +578,18 @@ Next
 For i = 1 To intDSig
   Line = ""
   For j = 1 To 3
-    Line = Line & "," & objSheet.Cells(j + 9, i + 3 + intASig).Value
+    Line = Line & "," & Replace(objSheet.Cells(j + 9, i + 3 + intASig).Value, ",", ".")
   Next
   Line = Right(Line, Len(Line) - 1)
   Print #intCFGFile, Line
 Next
 
 ' Оставшиеся данные
-Print #intCFGFile, objSheet.Cells(4, 2).Value
+Print #intCFGFile, Trim(objSheet.Cells(4, 2).Value)
 Print #intCFGFile, "1"
 Print #intCFGFile, objSheet.Cells(5, 2).Value & "," & objSheet.Cells(6, 2).Value
-Print #intCFGFile, objSheet.Cells(7, 2).Value & "," & objSheet.Cells(7, 2).Value
-Print #intCFGFile, objSheet.Cells(8, 2).Value & "," & objSheet.Cells(8, 2).Value
+Print #intCFGFile, objSheet.Cells(7, 2).Value & "," & objSheet.Cells(7, 3).Value
+Print #intCFGFile, objSheet.Cells(8, 2).Value & "," & objSheet.Cells(8, 3).Value
 Print #intCFGFile, "ASCII"
 
 Close #intCFGFile
