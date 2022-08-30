@@ -1,2 +1,2 @@
-*.bas encoding=cp1251
-*.md encoding=utf-8
+*.bas text working-tree-encoding=cp1251
+*.md text working-tree-encoding=utf-8
