@@ -4,7 +4,7 @@ Attribute VB_Name = "Comtrade2Excel"
 ' ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 ' https://github.com/wyfinger/Comtrade2Excel
 ' Игорь Матвеев, miv@prim.so-ups.ru
-' 2014
+' 2014-2022
 '
 
 Option Explicit
@@ -440,6 +440,13 @@ For i = 1 To intDSig
   For j = LBound(Line) To UBound(Line)
     objSheet.Cells(j + 10, i + 3 + intASig).Value = ArrGet(Line, j)
   Next
+  ' В версии 1991 формата после наименования дискретного сигнала следует значение по умолчанию,
+  ' в версии 1999 после наименования сигнала идут два каких-то параметра (обычно пустые) и  только потом
+  ' значение по умолчанию. Сразу преобразуем в формат 1991.
+  If (objSheet.Cells(12, i + 3 + intASig).Value = "") And (objSheet.Cells(14, i + 3 + intASig).Value <> "") Then
+    objSheet.Cells(12, i + 3 + intASig).Value = objSheet.Cells(14, i + 3 + intASig).Value
+    objSheet.Cells(14, i + 3 + intASig).Value = ""
+  End If
 Next
 
 ' После дискретных каналов продолжаются общие данные
@@ -651,6 +658,157 @@ Application.DisplayStatusBar = True
 Application.DisplayAlerts = True
     
 End Sub
+
+
+Private Function ParseDateTimeEx(Val As String) As Currency
+'
+' Чтение даты из строки формата ГГГГ-ММ-ДД чч:мм:сс.000
+' с точностью до микросекунды
+
+Dim parts() As String
+parts = Split(Val, ".")
+ParseDateTimeEx = CCur(CDate(parts(0)) * 86400) + CCur(parts(1) / 1000)
+
+End Function
+
+
+Public Sub Discrete2Excel()
+'
+' Преобразование набора дискретных сигналов в Excel, уоторый впоследствии можно сохранить в Comtrade
+
+Dim objSigSheet As Variant
+If ActiveSheet.Name <> "Signals to Comtrade" Then
+  MsgBox "Должен быть выделен лист 'Signals to Comtrade'"
+  Exit Sub
+End If
+Set objSigSheet = ActiveSheet
+
+' Создаем новый лист
+Set objSheet = ActiveWorkbook.Worksheets.Add
+On Error GoTo err_sheet_exists
+  Dim errSheetExists As Boolean
+  objSheet.Name = "Discretes"
+  errSheetExists = True
+err_sheet_exists:
+  If Not errSheetExists Then
+    ' Если лист переименовать не удалось - хрен с ним
+  End If
+On Error GoTo 0
+  
+objSheet.Cells(1, 1).Value = "Файл:": objSheet.Cells(1, 2).Value = "Дискретные сигналы"
+
+' Первая строка: Название объекта и идентификатор регистратора
+objSheet.Cells(2, 1).Value = "Наименование:": objSheet.Cells(2, 2).Value = "Дискреты"
+objSheet.Cells(3, 1).Value = "Номер:": objSheet.Cells(3, 2).Value = "123"
+
+' Заголовки
+objSheet.Cells(10, 1).Value = "SignalNo"
+objSheet.Cells(11, 1).Value = "SignalName"
+objSheet.Cells(12, 1).Value = "SignalPhase"
+objSheet.Cells(13, 1).Value = "Component"
+objSheet.Cells(14, 1).Value = "Meas"
+objSheet.Cells(15, 1).Value = "A"
+objSheet.Cells(16, 1).Value = "B"
+objSheet.Cells(17, 1).Value = "Skew"
+objSheet.Cells(18, 1).Value = "Min"
+objSheet.Cells(19, 1).Value = "Max"
+
+Dim i As Long
+Dim j As Long
+Dim k As Long
+Dim F As Boolean
+ReDim Signals(0) As String
+ReDim LastSignal(0) As Integer
+
+' Считаем список сигналов без повторений
+For i = 2 To objSigSheet.UsedRange.Rows.Count ' первая строка - заголовки
+  If objSigSheet.Cells(i, 3).Value <> "" Then
+    F = True
+    If i > 2 Then
+      For j = LBound(Signals) To UBound(Signals)
+        If objSigSheet.Cells(i, 3).Value = Signals(j) Then
+          F = False
+          Exit For
+        End If
+      Next
+    End If
+    If F Then
+      If i > 2 Then
+        ReDim Preserve Signals(UBound(Signals) + 1) As String
+        ReDim Preserve LastSignal(UBound(Signals)) As Integer
+      End If
+      Signals(UBound(Signals)) = objSigSheet.Cells(i, 3).Value
+      If objSigSheet.Cells(i, 2).Value = 1 Then LastSignal(UBound(Signals)) = 0 Else LastSignal(UBound(Signals)) = 1
+    End If
+  End If
+Next
+
+For i = LBound(Signals) To UBound(Signals)
+  objSheet.Cells(10, i + 4).Value = i + 1      ' SignalNo
+  objSheet.Cells(11, i + 4).Value = Signals(i) ' SignalName
+  objSheet.Cells(12, i + 4).Value = 0          ' DefaultValue (Meas)
+Next
+
+objSheet.Cells(4, 1).Value = "Частота:": objSheet.Cells(4, 2).Value = 50
+objSheet.Cells(5, 1).Value = "Дискретизация:": objSheet.Cells(5, 2).Value = 1000
+
+' Время старта / пуска
+Dim T As Currency
+T = ParseDateTimeEx(objSigSheet.Cells(2, 1).Value) - 0.1  ' -100 мс
+objSheet.Cells(7, 1).Value = "Дата/Время старта:":
+objSheet.Cells(7, 2).NumberFormat = "@"
+objSheet.Cells(7, 3).NumberFormat = "@"
+objSheet.Cells(7, 2).Value = Format(T / 86400, "MM\/dd\/yy")
+objSheet.Cells(7, 3).Value = Format(T / 86400, "HH:mm:ss") & "." & ((T - Fix(T)) * 1000000)
+
+objSheet.Cells(8, 1).Value = "Дата/Время пуска:":
+objSheet.Cells(8, 2).NumberFormat = "@"
+objSheet.Cells(8, 3).NumberFormat = "@"
+objSheet.Cells(8, 2).Value = objSheet.Cells(7, 2).Value
+objSheet.Cells(8, 3).Value = objSheet.Cells(7, 3).Value
+
+' Отсчеты
+i = 1
+
+Dim StartTime As Currency
+Dim StopTime As Currency
+Dim S As String
+
+StartTime = T
+StopTime = ParseDateTimeEx(objSigSheet.Cells(objSigSheet.UsedRange.Rows.Count, 1).Value) + 0.1 ' +100 мс
+k = 2
+
+For i = 0 To (StopTime - StartTime) * 1000
+
+  objSheet.Cells(20 + i, 2).Value = i + 1
+  objSheet.Cells(20 + i, 3).Value = i * 1000
+  
+  Do While Format(Fix(T) / 86400, "yyyy-MM-dd HH:mm:ss") & "." & ((T - Fix(T)) * 1000) = objSigSheet.Cells(k, 1).Value
+    For j = 0 To UBound(Signals)
+      If objSigSheet.Cells(k, 3).Value = Signals(j) Then
+        LastSignal(j) = objSigSheet.Cells(k, 2).Value
+        Exit For
+      End If
+    Next
+    k = k + 1
+  Loop
+  
+  For j = 0 To UBound(LastSignal)
+    objSheet.Cells(20 + i, 4 + j).Value = LastSignal(j)
+  Next
+  
+  If objSigSheet.Cells(k, 1).Value = "" Then Exit For
+
+  T = T + 0.001
+ 
+Next
+
+objSheet.Cells(6, 1).Value = "Отсчетов:"
+objSheet.Cells(6, 2).NumberFormat = "0"
+objSheet.Cells(6, 2).Formula = "=MAX(B20:B999999)"
+
+End Sub
+
 
 
 Public Sub Comtrade2Excel()
