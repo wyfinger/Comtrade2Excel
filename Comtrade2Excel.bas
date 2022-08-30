@@ -3,8 +3,8 @@ Attribute VB_Name = "Comtrade2Excel"
 ' Comtrade2Excel Excel2Comtrade Converter
 ' ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 ' https://github.com/wyfinger/Comtrade2Excel
-' Игорь Матвеев, miv@prim.so-ups.ru
-' 2014-2022
+' РРіРѕСЂСЊ РњР°С‚РІРµРµРІ, miv@prim.so-ups.ru
+' 2014-2022 
 '
 
 Option Explicit
@@ -17,7 +17,7 @@ Dim objSheet As Variant
 
 Private Function ReplaceExt(strFileName As String, strNewExt As String) As String
 '
-' Смена расширения файла
+' РЎРјРµРЅР° СЂР°СЃС€РёСЂРµРЅРёСЏ С„Р°Р№Р»Р°
 
 Dim dot_pos As Long
 
@@ -33,7 +33,7 @@ End Function
 
 Private Function ExtractFileName(strPath As String) As String
 '
-' Получить имя файла
+' РџРѕР»СѓС‡РёС‚СЊ РёРјСЏ С„Р°Р№Р»Р°
 
 Dim slash_pos As Long
 
@@ -51,7 +51,7 @@ End Function
 
 Private Function FileExists(strFileName As String) As Boolean
 '
-' Проверка существования файла
+' РџСЂРѕРІРµСЂРєР° СЃСѓС‰РµСЃС‚РІРѕРІР°РЅРёСЏ С„Р°Р№Р»Р°
 
 FileExists = PathFileExists(strFileName)
   
@@ -60,7 +60,7 @@ End Function
 
 Private Function ArrGet(varArr, intNo As Integer) As String
 '
-' Функция безопасного извлечения данных из массива
+' Р¤СѓРЅРєС†РёСЏ Р±РµР·РѕРїР°СЃРЅРѕРіРѕ РёР·РІР»РµС‡РµРЅРёСЏ РґР°РЅРЅС‹С… РёР· РјР°СЃСЃРёРІР°
 
 If (intNo >= LBound(varArr)) And (intNo <= UBound(varArr)) Then
   ArrGet = varArr(intNo)
@@ -73,7 +73,7 @@ End Function
 
 Private Function GetInt(strVal As String) As Double
 '
-' Убираем из строки все нецифровые символы и преобразовываем в число
+' РЈР±РёСЂР°РµРј РёР· СЃС‚СЂРѕРєРё РІСЃРµ РЅРµС†РёС„СЂРѕРІС‹Рµ СЃРёРјРІРѕР»С‹ Рё РїСЂРµРѕР±СЂР°Р·РѕРІС‹РІР°РµРј РІ С‡РёСЃР»Рѕ
 
 Dim i As Integer
 Dim strRez As String
@@ -98,13 +98,13 @@ End Function
 
 Private Function ReadASCIILine(ByVal intFile As Integer)
 '
-' Чтение одной строки данных из CFG или DAT файла ASCII формата
+' Р§С‚РµРЅРёРµ РѕРґРЅРѕР№ СЃС‚СЂРѕРєРё РґР°РЅРЅС‹С… РёР· CFG РёР»Рё DAT С„Р°Р№Р»Р° ASCII С„РѕСЂРјР°С‚Р°
 
 Dim ReadedLine As String
 
 Line Input #intFile, ReadedLine
 
-' Декодируем OEM (DOS) to ANSI (Windows)
+' Р”РµРєРѕРґРёСЂСѓРµРј OEM (DOS) to ANSI (Windows)
 Dim RVar As Integer
 Dim DecodedLine As String
 
@@ -118,7 +118,7 @@ End Function
 
 Private Function Combine4Byte(ByVal A As Byte, ByVal B As Byte, ByVal C As Byte, ByVal D As Byte) As Double
 '
-' Из четырех байт делаем Double (только для положительных чисел)
+' РР· С‡РµС‚С‹СЂРµС… Р±Р°Р№С‚ РґРµР»Р°РµРј Double (С‚РѕР»СЊРєРѕ РґР»СЏ РїРѕР»РѕР¶РёС‚РµР»СЊРЅС‹С… С‡РёСЃРµР»)
 
 Combine4Byte = D * 2 ^ 24 + C * 2 ^ 16 + B * 2 ^ 8 + A
 
@@ -127,7 +127,7 @@ End Function
 
 Private Function Combine2Byte(ByVal A As Byte, ByVal B As Byte) As Integer
 '
-' Из двух байт делаем Double (могут быть отрицательные)
+' РР· РґРІСѓС… Р±Р°Р№С‚ РґРµР»Р°РµРј Double (РјРѕРіСѓС‚ Р±С‹С‚СЊ РѕС‚СЂРёС†Р°С‚РµР»СЊРЅС‹Рµ)
 
 Combine2Byte = (B And 127) * (2 ^ 8) + A
 If (B And 128) = 128 Then Combine2Byte = Combine2Byte - (2 ^ 15)
@@ -137,10 +137,10 @@ End Function
 
 Private Function ReadBINARYLine(ByVal intFile As Integer, ByVal intLen As Integer, ByVal intASig As Integer, ByVal intDSig As Integer)
 '
-' Чтение одной строки данных из DAT файла BINARY формата
+' Р§С‚РµРЅРёРµ РѕРґРЅРѕР№ СЃС‚СЂРѕРєРё РґР°РЅРЅС‹С… РёР· DAT С„Р°Р№Р»Р° BINARY С„РѕСЂРјР°С‚Р°
 
-' В BINARY DAT файле первые два значения: номер и время в мс записаны в 4 байта каждый, далее идут аналоговые
-' отсчеты по 2 байта на сигнал, а потом дискреты побитово, незначащие биты последнего байта заполняются 1
+' Р’ BINARY DAT С„Р°Р№Р»Рµ РїРµСЂРІС‹Рµ РґРІР° Р·РЅР°С‡РµРЅРёСЏ: РЅРѕРјРµСЂ Рё РІСЂРµРјСЏ РІ РјСЃ Р·Р°РїРёСЃР°РЅС‹ РІ 4 Р±Р°Р№С‚Р° РєР°Р¶РґС‹Р№, РґР°Р»РµРµ РёРґСѓС‚ Р°РЅР°Р»РѕРіРѕРІС‹Рµ
+' РѕС‚СЃС‡РµС‚С‹ РїРѕ 2 Р±Р°Р№С‚Р° РЅР° СЃРёРіРЅР°Р», Р° РїРѕС‚РѕРј РґРёСЃРєСЂРµС‚С‹ РїРѕР±РёС‚РѕРІРѕ, РЅРµР·РЅР°С‡Р°С‰РёРµ Р±РёС‚С‹ РїРѕСЃР»РµРґРЅРµРіРѕ Р±Р°Р№С‚Р° Р·Р°РїРѕР»РЅСЏСЋС‚СЃСЏ 1
 
 Dim ByteLine() As Byte
 ReDim ByteLine(intLen - 1) As Byte
@@ -149,17 +149,17 @@ Get #intFile, , ByteLine
 
 Dim ResultStr As String
 
-' Номер и время отсчета
+' РќРѕРјРµСЂ Рё РІСЂРµРјСЏ РѕС‚СЃС‡РµС‚Р°
 ResultStr = Combine4Byte(ByteLine(0), ByteLine(1), ByteLine(2), ByteLine(3))
 ResultStr = ResultStr & "," & Combine4Byte(ByteLine(4), ByteLine(5), ByteLine(6), ByteLine(7))
 
-' Читаем аналоговые сигналы
+' Р§РёС‚Р°РµРј Р°РЅР°Р»РѕРіРѕРІС‹Рµ СЃРёРіРЅР°Р»С‹
 Dim i As Integer
 For i = 0 To intASig - 1
   ResultStr = ResultStr & "," & Combine2Byte(ByteLine(8 + i * 2), ByteLine(8 + i * 2 + 1))
 Next
 
-' Читаем дискретные сигналы
+' Р§РёС‚Р°РµРј РґРёСЃРєСЂРµС‚РЅС‹Рµ СЃРёРіРЅР°Р»С‹
 For i = 0 To intDSig - 1
   If (ByteLine(8 + intASig * 2 + i \ 8) And (2 ^ (i Mod 8))) = (2 ^ (i Mod 8)) Then
     ResultStr = ResultStr & ",1"
@@ -168,15 +168,15 @@ For i = 0 To intDSig - 1
   End If
 Next
 
-' Декодируем массив
+' Р”РµРєРѕРґРёСЂСѓРµРј РјР°СЃСЃРёРІ
 ReadBINARYLine = Split(ResultStr, ",")
 
 End Function
 
 Private Function ReadBINARYLineEasy(ByVal intFile As Integer, ByVal intLen As Integer, ByVal intASig As Integer, ByVal intDSig As Integer)
 '
-' Чтение одной строки данных из DAT файла BINARY EASY формата,
-' в результате нет номера и времени отсчета.
+' Р§С‚РµРЅРёРµ РѕРґРЅРѕР№ СЃС‚СЂРѕРєРё РґР°РЅРЅС‹С… РёР· DAT С„Р°Р№Р»Р° BINARY EASY С„РѕСЂРјР°С‚Р°,
+' РІ СЂРµР·СѓР»СЊС‚Р°С‚Рµ РЅРµС‚ РЅРѕРјРµСЂР° Рё РІСЂРµРјРµРЅРё РѕС‚СЃС‡РµС‚Р°.
 
 Dim ByteLine() As Byte
 ReDim ByteLine(intLen - 1) As Byte
@@ -185,13 +185,13 @@ Get #intFile, , ByteLine
 
 Dim ResultStr As String
 
-' Читаем аналоговые сигналы
+' Р§РёС‚Р°РµРј Р°РЅР°Р»РѕРіРѕРІС‹Рµ СЃРёРіРЅР°Р»С‹
 Dim i As Integer
 For i = 0 To intASig - 1
   ResultStr = ResultStr & "," & Combine2Byte(ByteLine(i * 2), ByteLine(i * 2 + 1))
 Next
 
-' Читаем дискретные сигналы
+' Р§РёС‚Р°РµРј РґРёСЃРєСЂРµС‚РЅС‹Рµ СЃРёРіРЅР°Р»С‹
 For i = 0 To intDSig - 1
   If (ByteLine(intASig * 2 + i \ 8) And (2 ^ (i Mod 8))) = (2 ^ (i Mod 8)) Then
     ResultStr = ResultStr & ",1"
@@ -200,17 +200,17 @@ For i = 0 To intDSig - 1
   End If
 Next
 
-' Убираем первую запятую
+' РЈР±РёСЂР°РµРј РїРµСЂРІСѓСЋ Р·Р°РїСЏС‚СѓСЋ
 ResultStr = Mid(ResultStr, 2, Len(ResultStr))
 
-' Декодируем массив
+' Р”РµРєРѕРґРёСЂСѓРµРј РјР°СЃСЃРёРІ
 ReadBINARYLineEasy = Split(ResultStr, ",")
 
 End Function
 
 Private Function LoadDataASCII(strDATFile As String) As Boolean
 '
-' Чтение файла данных в формате ASCII
+' Р§С‚РµРЅРёРµ С„Р°Р№Р»Р° РґР°РЅРЅС‹С… РІ С„РѕСЂРјР°С‚Рµ ASCII
 
 Dim i As Integer
 Dim j As Integer
@@ -237,7 +237,7 @@ On Error GoTo err_read_dat_file
   
 err_read_dat_file:
   If Not errReadDatFile Then
-    LoadDataASCII = False  ' Error, возникла ошибка при чтении ASCII DAT файла
+    LoadDataASCII = False  ' Error, РІРѕР·РЅРёРєР»Р° РѕС€РёР±РєР° РїСЂРё С‡С‚РµРЅРёРё ASCII DAT С„Р°Р№Р»Р°
     Exit Function
   End If
 On Error GoTo 0
@@ -249,7 +249,7 @@ End Function
 
 Private Function LoadDataBINARY(strDATFile As String, ByVal intASig As Integer, ByVal intDSig As Integer) As Boolean
 '
-' Чтение файла данных в формате BINARY
+' Р§С‚РµРЅРёРµ С„Р°Р№Р»Р° РґР°РЅРЅС‹С… РІ С„РѕСЂРјР°С‚Рµ BINARY
 
 Dim intDATFile As Integer
 Dim i As Integer
@@ -258,7 +258,7 @@ Dim Line
 Dim LineLen As Integer
 Dim FileSize As Long
 
-' Количество байтов в одной записи
+' РљРѕР»РёС‡РµСЃС‚РІРѕ Р±Р°Р№С‚РѕРІ РІ РѕРґРЅРѕР№ Р·Р°РїРёСЃРё
 LineLen = 8 + (intASig * 2) + (intDSig \ 8) + ((intDSig Mod 8) And 1)
 
 On Error GoTo err_read_dat_file
@@ -282,7 +282,7 @@ On Error GoTo err_read_dat_file
   
 err_read_dat_file:
   If Not errReadDatFile Then
-    LoadDataBINARY = False  ' Error, возникла ошибка при чтении DAT файла
+    LoadDataBINARY = False  ' Error, РІРѕР·РЅРёРєР»Р° РѕС€РёР±РєР° РїСЂРё С‡С‚РµРЅРёРё DAT С„Р°Р№Р»Р°
     Exit Function
   End If
 On Error GoTo 0
@@ -294,9 +294,9 @@ End Function
 
 Private Function LoadDataBINARYEasy(strDATFile As String, ByVal intASig As Integer, ByVal intDSig As Integer) As Boolean
 '
-' Чтение файла данных в формате BINARY дебильного Бреслера,
-' Они в конце CFG файла добаляют EASY= 1 и не пишут первые 8 байт в DAT файле:
-' номер и время отсчета.
+' Р§С‚РµРЅРёРµ С„Р°Р№Р»Р° РґР°РЅРЅС‹С… РІ С„РѕСЂРјР°С‚Рµ BINARY РґРµР±РёР»СЊРЅРѕРіРѕ Р‘СЂРµСЃР»РµСЂР°,
+' РћРЅРё РІ РєРѕРЅС†Рµ CFG С„Р°Р№Р»Р° РґРѕР±Р°Р»СЏСЋС‚ EASY= 1 Рё РЅРµ РїРёС€СѓС‚ РїРµСЂРІС‹Рµ 8 Р±Р°Р№С‚ РІ DAT С„Р°Р№Р»Рµ:
+' РЅРѕРјРµСЂ Рё РІСЂРµРјСЏ РѕС‚СЃС‡РµС‚Р°.
 
 Dim intDATFile As Integer
 Dim i As Integer
@@ -306,7 +306,7 @@ Dim LineLen As Integer
 Dim FileSize As Long
 Dim stepPeriod As Long
 
-' Количество байтов в одной записи, на 8 меньше, чем в LoadDataBINARY
+' РљРѕР»РёС‡РµСЃС‚РІРѕ Р±Р°Р№С‚РѕРІ РІ РѕРґРЅРѕР№ Р·Р°РїРёСЃРё, РЅР° 8 РјРµРЅСЊС€Рµ, С‡РµРј РІ LoadDataBINARY
 LineLen = (intASig * 2) + (intDSig \ 8) + ((intDSig Mod 8) And 1)
 
 On Error GoTo err_read_dat_file
@@ -316,13 +316,13 @@ On Error GoTo err_read_dat_file
   Open strDATFile For Binary Access Read Lock Write As #intDATFile Len = LineLen
   Seek #intDATFile, 1
 
-  stepPeriod = 1000000 / objSheet.Cells(5, 2).Value  ' мкс в одном шаге
+  stepPeriod = 1000000 / objSheet.Cells(5, 2).Value  ' РјРєСЃ РІ РѕРґРЅРѕРј С€Р°РіРµ
 
   i = 20
   Do While (Not EOF(intDATFile)) And (Seek(intDATFile) < FileSize) And (i <= objSheet.Cells(6, 3).Value + 19)
     Line = ReadBINARYLineEasy(intDATFile, LineLen, intASig, intDSig)
-    objSheet.Cells(i, 2).Value = i - 20 + 1     ' номер
-    objSheet.Cells(i, 3).Value = (i - 20) * stepPeriod ' время
+    objSheet.Cells(i, 2).Value = i - 20 + 1     ' РЅРѕРјРµСЂ
+    objSheet.Cells(i, 3).Value = (i - 20) * stepPeriod ' РІСЂРµРјСЏ
     For j = 0 To UBound(Line)
       objSheet.Cells(i, j + 4).Value = ArrGet(Line, j)
     Next
@@ -334,7 +334,7 @@ On Error GoTo err_read_dat_file
   
 err_read_dat_file:
   If Not errReadDatFile Then
-    LoadDataBINARYEasy = False  ' Error, возникла ошибка при чтении DAT файла
+    LoadDataBINARYEasy = False  ' Error, РІРѕР·РЅРёРєР»Р° РѕС€РёР±РєР° РїСЂРё С‡С‚РµРЅРёРё DAT С„Р°Р№Р»Р°
     Exit Function
   End If
 On Error GoTo 0
@@ -345,26 +345,26 @@ End Function
 
 Private Function OpenComtrade(strFileName As String) As Integer
 '
-' Чтение CFG файла и загрузка данных
+' Р§С‚РµРЅРёРµ CFG С„Р°Р№Р»Р° Рё Р·Р°РіСЂСѓР·РєР° РґР°РЅРЅС‹С…
 
-' Читаем CFG файл
+' Р§РёС‚Р°РµРј CFG С„Р°Р№Р»
 
 Dim intCFGFile As Integer
 Dim strDATFile As String
 
 strDATFile = ReplaceExt(strFileName, "dat")
 
-' Проверка существования файлов
+' РџСЂРѕРІРµСЂРєР° СЃСѓС‰РµСЃС‚РІРѕРІР°РЅРёСЏ С„Р°Р№Р»РѕРІ
 If Not FileExists(strFileName) Then
-  OpenComtrade = 1    ' Error, CFG файл не найден
+  OpenComtrade = 1    ' Error, CFG С„Р°Р№Р» РЅРµ РЅР°Р№РґРµРЅ
   Exit Function
 End If
 If Not FileExists(strDATFile) Then
-  OpenComtrade = 2    ' Error, DAT файл не найден
+  OpenComtrade = 2    ' Error, DAT С„Р°Р№Р» РЅРµ РЅР°Р№РґРµРЅ
   Exit Function
 End If
 
-' Открываем CFG файл, контролируем ошибку доступа
+' РћС‚РєСЂС‹РІР°РµРј CFG С„Р°Р№Р», РєРѕРЅС‚СЂРѕР»РёСЂСѓРµРј РѕС€РёР±РєСѓ РґРѕСЃС‚СѓРїР°
 On Error GoTo err_cfg_file_access
   Dim errCFGFileAccess As Boolean
   intCFGFile = FreeFile
@@ -372,12 +372,12 @@ On Error GoTo err_cfg_file_access
   errCFGFileAccess = True
 err_cfg_file_access:
   If Not errCFGFileAccess Then
-    OpenComtrade = 3  ' Error, ошибка доступа к CFG файлу
+    OpenComtrade = 3  ' Error, РѕС€РёР±РєР° РґРѕСЃС‚СѓРїР° Рє CFG С„Р°Р№Р»Сѓ
     Exit Function
   End If
 On Error GoTo 0
   
-' Создаем новый лист
+' РЎРѕР·РґР°РµРј РЅРѕРІС‹Р№ Р»РёСЃС‚
 Set objSheet = ActiveWorkbook.Worksheets.Add
 On Error GoTo err_sheet_exists
   Dim errSheetExists As Boolean
@@ -385,33 +385,33 @@ On Error GoTo err_sheet_exists
   errSheetExists = True
 err_sheet_exists:
   If Not errSheetExists Then
-    ' Если лист переименовать не удалось - хрен с ним
+    ' Р•СЃР»Рё Р»РёСЃС‚ РїРµСЂРµРёРјРµРЅРѕРІР°С‚СЊ РЅРµ СѓРґР°Р»РѕСЃСЊ - С…СЂРµРЅ СЃ РЅРёРј
   
-    'OpenComtrade = 4  ' Error, лист с таким именем уже существует
-    ' TO-DO: Неплохо бы еще удалить только что созданный лист без запроса
+    'OpenComtrade = 4  ' Error, Р»РёСЃС‚ СЃ С‚Р°РєРёРј РёРјРµРЅРµРј СѓР¶Рµ СЃСѓС‰РµСЃС‚РІСѓРµС‚
+    ' TO-DO: РќРµРїР»РѕС…Рѕ Р±С‹ РµС‰Рµ СѓРґР°Р»РёС‚СЊ С‚РѕР»СЊРєРѕ С‡С‚Рѕ СЃРѕР·РґР°РЅРЅС‹Р№ Р»РёСЃС‚ Р±РµР· Р·Р°РїСЂРѕСЃР°
     'objSheet.Delete
     'Exit Function
   End If
 On Error GoTo 0
   
-' Читаем CFG файл, заполняем лист
+' Р§РёС‚Р°РµРј CFG С„Р°Р№Р», Р·Р°РїРѕР»РЅСЏРµРј Р»РёСЃС‚
 Dim Line
 Dim intASig As Integer
 Dim intDSig As Integer
 
-objSheet.Cells(1, 1).Value = "Файл:": objSheet.Cells(1, 2).Value = strFileName
+objSheet.Cells(1, 1).Value = "Р¤Р°Р№Р»:": objSheet.Cells(1, 2).Value = strFileName
 
-' Первая строка: Название объекта и идентификатор регистратора
+' РџРµСЂРІР°СЏ СЃС‚СЂРѕРєР°: РќР°Р·РІР°РЅРёРµ РѕР±СЉРµРєС‚Р° Рё РёРґРµРЅС‚РёС„РёРєР°С‚РѕСЂ СЂРµРіРёСЃС‚СЂР°С‚РѕСЂР°
 Line = ReadASCIILine(intCFGFile)
-objSheet.Cells(2, 1).Value = "Наименование:": objSheet.Cells(2, 2).Value = ArrGet(Line, 0)
-objSheet.Cells(3, 1).Value = "Номер:": objSheet.Cells(3, 2).Value = ArrGet(Line, 1)
+objSheet.Cells(2, 1).Value = "РќР°РёРјРµРЅРѕРІР°РЅРёРµ:": objSheet.Cells(2, 2).Value = ArrGet(Line, 0)
+objSheet.Cells(3, 1).Value = "РќРѕРјРµСЂ:": objSheet.Cells(3, 2).Value = ArrGet(Line, 1)
 
-' Вторая строка: общее количество каналов, количество аналоговых, количество дискретных
+' Р’С‚РѕСЂР°СЏ СЃС‚СЂРѕРєР°: РѕР±С‰РµРµ РєРѕР»РёС‡РµСЃС‚РІРѕ РєР°РЅР°Р»РѕРІ, РєРѕР»РёС‡РµСЃС‚РІРѕ Р°РЅР°Р»РѕРіРѕРІС‹С…, РєРѕР»РёС‡РµСЃС‚РІРѕ РґРёСЃРєСЂРµС‚РЅС‹С…
 Line = ReadASCIILine(intCFGFile)
 intASig = GetInt(ArrGet(Line, 1))
 intDSig = GetInt(ArrGet(Line, 2))
 
-' Заголовки
+' Р—Р°РіРѕР»РѕРІРєРё
 objSheet.Cells(10, 1).Value = "SignalNo"
 objSheet.Cells(11, 1).Value = "SignalName"
 objSheet.Cells(12, 1).Value = "SignalPhase"
@@ -423,7 +423,7 @@ objSheet.Cells(17, 1).Value = "Skew"
 objSheet.Cells(18, 1).Value = "Min"
 objSheet.Cells(19, 1).Value = "Max"
 
-' Читаем аналоговые каналы
+' Р§РёС‚Р°РµРј Р°РЅР°Р»РѕРіРѕРІС‹Рµ РєР°РЅР°Р»С‹
 Dim i As Integer
 Dim j As Integer
 
@@ -434,55 +434,55 @@ For i = 1 To intASig
   Next
 Next
 
-' Читаем дискретные каналы
+' Р§РёС‚Р°РµРј РґРёСЃРєСЂРµС‚РЅС‹Рµ РєР°РЅР°Р»С‹
 For i = 1 To intDSig
   Line = ReadASCIILine(intCFGFile)
   For j = LBound(Line) To UBound(Line)
     objSheet.Cells(j + 10, i + 3 + intASig).Value = ArrGet(Line, j)
   Next
-  ' В версии 1991 формата после наименования дискретного сигнала следует значение по умолчанию,
-  ' в версии 1999 после наименования сигнала идут два каких-то параметра (обычно пустые) и  только потом
-  ' значение по умолчанию. Сразу преобразуем в формат 1991.
+  ' Р’ РІРµСЂСЃРёРё 1991 С„РѕСЂРјР°С‚Р° РїРѕСЃР»Рµ РЅР°РёРјРµРЅРѕРІР°РЅРёСЏ РґРёСЃРєСЂРµС‚РЅРѕРіРѕ СЃРёРіРЅР°Р»Р° СЃР»РµРґСѓРµС‚ Р·РЅР°С‡РµРЅРёРµ РїРѕ СѓРјРѕР»С‡Р°РЅРёСЋ,
+  ' РІ РІРµСЂСЃРёРё 1999 РїРѕСЃР»Рµ РЅР°РёРјРµРЅРѕРІР°РЅРёСЏ СЃРёРіРЅР°Р»Р° РёРґСѓС‚ РґРІР° РєР°РєРёС…-С‚Рѕ РїР°СЂР°РјРµС‚СЂР° (РѕР±С‹С‡РЅРѕ РїСѓСЃС‚С‹Рµ) Рё  С‚РѕР»СЊРєРѕ РїРѕС‚РѕРј
+  ' Р·РЅР°С‡РµРЅРёРµ РїРѕ СѓРјРѕР»С‡Р°РЅРёСЋ. РЎСЂР°Р·Сѓ РїСЂРµРѕР±СЂР°Р·СѓРµРј РІ С„РѕСЂРјР°С‚ 1991.
   If (objSheet.Cells(12, i + 3 + intASig).Value = "") And (objSheet.Cells(14, i + 3 + intASig).Value <> "") Then
     objSheet.Cells(12, i + 3 + intASig).Value = objSheet.Cells(14, i + 3 + intASig).Value
     objSheet.Cells(14, i + 3 + intASig).Value = ""
   End If
 Next
 
-' После дискретных каналов продолжаются общие данные
-' Несущая частота
+' РџРѕСЃР»Рµ РґРёСЃРєСЂРµС‚РЅС‹С… РєР°РЅР°Р»РѕРІ РїСЂРѕРґРѕР»Р¶Р°СЋС‚СЃСЏ РѕР±С‰РёРµ РґР°РЅРЅС‹Рµ
+' РќРµСЃСѓС‰Р°СЏ С‡Р°СЃС‚РѕС‚Р°
 Line = ReadASCIILine(intCFGFile)
-objSheet.Cells(4, 1).Value = "Частота:": objSheet.Cells(4, 2).Value = GetInt(ArrGet(Line, 0))
+objSheet.Cells(4, 1).Value = "Р§Р°СЃС‚РѕС‚Р°:": objSheet.Cells(4, 2).Value = GetInt(ArrGet(Line, 0))
 
-' Количество частот дискретизации, мы считаем, что здесь всегда 1
+' РљРѕР»РёС‡РµСЃС‚РІРѕ С‡Р°СЃС‚РѕС‚ РґРёСЃРєСЂРµС‚РёР·Р°С†РёРё, РјС‹ СЃС‡РёС‚Р°РµРј, С‡С‚Рѕ Р·РґРµСЃСЊ РІСЃРµРіРґР° 1
 Line = ReadASCIILine(intCFGFile)
 
-' Дискретизация и количество отсчетов
+' Р”РёСЃРєСЂРµС‚РёР·Р°С†РёСЏ Рё РєРѕР»РёС‡РµСЃС‚РІРѕ РѕС‚СЃС‡РµС‚РѕРІ
 Line = ReadASCIILine(intCFGFile)
-objSheet.Cells(5, 1).Value = "Дискретизация:": objSheet.Cells(5, 2).Value = GetInt(ArrGet(Line, 0))
-objSheet.Cells(6, 1).Value = "Отсчетов:": objSheet.Cells(6, 3).Value = GetInt(ArrGet(Line, 1))
+objSheet.Cells(5, 1).Value = "Р”РёСЃРєСЂРµС‚РёР·Р°С†РёСЏ:": objSheet.Cells(5, 2).Value = GetInt(ArrGet(Line, 0))
+objSheet.Cells(6, 1).Value = "РћС‚СЃС‡РµС‚РѕРІ:": objSheet.Cells(6, 3).Value = GetInt(ArrGet(Line, 1))
 
-' Время старта / пуска
+' Р’СЂРµРјСЏ СЃС‚Р°СЂС‚Р° / РїСѓСЃРєР°
 Line = ReadASCIILine(intCFGFile)
-objSheet.Cells(7, 1).Value = "Дата/Время старта:":
+objSheet.Cells(7, 1).Value = "Р”Р°С‚Р°/Р’СЂРµРјСЏ СЃС‚Р°СЂС‚Р°:":
 objSheet.Cells(7, 2).NumberFormat = "@"
 objSheet.Cells(7, 3).NumberFormat = "@"
 objSheet.Cells(7, 2).Value = ArrGet(Line, 0)
 objSheet.Cells(7, 3).Value = ArrGet(Line, 1)
 
 Line = ReadASCIILine(intCFGFile)
-objSheet.Cells(8, 1).Value = "Дата/Время пуска:":
+objSheet.Cells(8, 1).Value = "Р”Р°С‚Р°/Р’СЂРµРјСЏ РїСѓСЃРєР°:":
 objSheet.Cells(8, 2).NumberFormat = "@"
 objSheet.Cells(8, 3).NumberFormat = "@"
 objSheet.Cells(8, 2).Value = ArrGet(Line, 0)
 objSheet.Cells(8, 3).Value = ArrGet(Line, 1)
 
-' Формат представления данных (ASCII / BINARY)
+' Р¤РѕСЂРјР°С‚ РїСЂРµРґСЃС‚Р°РІР»РµРЅРёСЏ РґР°РЅРЅС‹С… (ASCII / BINARY)
 Dim strDATFormat As String
 Line = ReadASCIILine(intCFGFile)
 strDATFormat = UCase$(ArrGet(Line, 0))
 
-' Если BINARY - проверим нет ли дальше "EASY= 1"
+' Р•СЃР»Рё BINARY - РїСЂРѕРІРµСЂРёРј РЅРµС‚ Р»Рё РґР°Р»СЊС€Рµ "EASY= 1"
 On Error GoTo err_easy
   Dim strEASY As String
   Line = ReadASCIILine(intCFGFile)
@@ -490,7 +490,7 @@ On Error GoTo err_easy
 err_easy:
 Close #intCFGFile
 
-' Читаем данные в зависимости от формата
+' Р§РёС‚Р°РµРј РґР°РЅРЅС‹Рµ РІ Р·Р°РІРёСЃРёРјРѕСЃС‚Рё РѕС‚ С„РѕСЂРјР°С‚Р°
 Dim ReadOk As Boolean
 If strDATFormat = "ASCII" Then
   ReadOk = LoadDataASCII(strDATFile)
@@ -501,13 +501,13 @@ ElseIf strDATFormat = "BINARY" Then
     ReadOk = LoadDataBINARY(strDATFile, intASig, intDSig)
   End If
 Else
-  OpenComtrade = 5  ' Error, ошибка в формате DAT файла, должно быть ASCII или BINARY
+  OpenComtrade = 5  ' Error, РѕС€РёР±РєР° РІ С„РѕСЂРјР°С‚Рµ DAT С„Р°Р№Р»Р°, РґРѕР»Р¶РЅРѕ Р±С‹С‚СЊ ASCII РёР»Рё BINARY
   Exit Function
 End If
 
-If Not ReadOk Then OpenComtrade = 6  ' Error, ошибка при чтении DAT файла
+If Not ReadOk Then OpenComtrade = 6  ' Error, РѕС€РёР±РєР° РїСЂРё С‡С‚РµРЅРёРё DAT С„Р°Р№Р»Р°
 
-' Это чтобы не править каждый раз количество отсчетов
+' Р­С‚Рѕ С‡С‚РѕР±С‹ РЅРµ РїСЂР°РІРёС‚СЊ РєР°Р¶РґС‹Р№ СЂР°Р· РєРѕР»РёС‡РµСЃС‚РІРѕ РѕС‚СЃС‡РµС‚РѕРІ
 objSheet.Cells(6, 2).NumberFormat = "0"
 objSheet.Cells(6, 2).Formula = "=MAX(B20:B999999)"
 
@@ -518,7 +518,7 @@ End Function
 
 Private Function SaveComtrade(strFileName As String)
 '
-' Сохранение COMTRADE файла из Excel (фармат ASCII)
+' РЎРѕС…СЂР°РЅРµРЅРёРµ COMTRADE С„Р°Р№Р»Р° РёР· Excel (С„Р°СЂРјР°С‚ ASCII)
 
 Dim objSheet
 Set objSheet = ActiveWorkbook.ActiveSheet
@@ -529,7 +529,7 @@ Dim intDATFile As Integer
 
 strDATFile = ReplaceExt(strFileName, "dat")
 
-' Записываем CFG
+' Р—Р°РїРёСЃС‹РІР°РµРј CFG
 
 On Error GoTo err_cfg_file_access
   Dim errCFGFileAccess As Boolean
@@ -539,13 +539,13 @@ On Error GoTo err_cfg_file_access
   errCFGFileAccess = True
 err_cfg_file_access:
   If Not errCFGFileAccess Then
-    SaveComtrade = 1  ' Error, ошибка при записе CFG файла
+    SaveComtrade = 1  ' Error, РѕС€РёР±РєР° РїСЂРё Р·Р°РїРёСЃРµ CFG С„Р°Р№Р»Р°
     Exit Function
   End If
 On Error GoTo 0
 
 
-' Считаем количество аналоговых и дискретных сигналов
+' РЎС‡РёС‚Р°РµРј РєРѕР»РёС‡РµСЃС‚РІРѕ Р°РЅР°Р»РѕРіРѕРІС‹С… Рё РґРёСЃРєСЂРµС‚РЅС‹С… СЃРёРіРЅР°Р»РѕРІ
 Dim intSig As Integer
 Dim intASig As Integer
 Dim intDSig As Integer
@@ -569,7 +569,7 @@ intDSig = intSig - intASig
 
 Print #intCFGFile, intSig & "," & intASig & "A," & intDSig & "D"
 
-' Пишем описания каналов
+' РџРёС€РµРј РѕРїРёСЃР°РЅРёСЏ РєР°РЅР°Р»РѕРІ
 Dim Line As String
 Dim j As Integer
 
@@ -591,7 +591,7 @@ For i = 1 To intDSig
   Print #intCFGFile, Line
 Next
 
-' Оставшиеся данные
+' РћСЃС‚Р°РІС€РёРµСЃСЏ РґР°РЅРЅС‹Рµ
 Print #intCFGFile, Trim(objSheet.Cells(4, 2).Value)
 Print #intCFGFile, "1"
 Print #intCFGFile, objSheet.Cells(5, 2).Value & "," & objSheet.Cells(6, 2).Value
@@ -601,7 +601,7 @@ Print #intCFGFile, "ASCII"
 
 Close #intCFGFile
 
-' Пишем DAT файл с данными
+' РџРёС€РµРј DAT С„Р°Р№Р» СЃ РґР°РЅРЅС‹РјРё
 On Error GoTo err_dat_file_access
   Dim errDATFileAccess As Boolean
   intDATFile = FreeFile
@@ -609,7 +609,7 @@ On Error GoTo err_dat_file_access
   errDATFileAccess = True
 err_dat_file_access:
   If Not errDATFileAccess Then
-    SaveComtrade = 2  ' Error, ошибка при записе DAT файла
+    SaveComtrade = 2  ' Error, РѕС€РёР±РєР° РїСЂРё Р·Р°РїРёСЃРµ DAT С„Р°Р№Р»Р°
     Exit Function
   End If
 On Error GoTo 0
@@ -634,7 +634,7 @@ End Function
 
 Private Sub Prepare()
 '
-' Прекращаем всякие пересчеты, чтобы ускорить работу макроса
+' РџСЂРµРєСЂР°С‰Р°РµРј РІСЃСЏРєРёРµ РїРµСЂРµСЃС‡РµС‚С‹, С‡С‚РѕР±С‹ СѓСЃРєРѕСЂРёС‚СЊ СЂР°Р±РѕС‚Сѓ РјР°РєСЂРѕСЃР°
 
 Application.ScreenUpdating = False
 Application.Calculation = xlCalculationManual
@@ -648,7 +648,7 @@ End Sub
 
 Private Sub Ended()
 '
-' Возвращаем обычное состояние
+' Р’РѕР·РІСЂР°С‰Р°РµРј РѕР±С‹С‡РЅРѕРµ СЃРѕСЃС‚РѕСЏРЅРёРµ
 
 Application.ScreenUpdating = True
 Application.Calculation = xlCalculationAutomatic
@@ -662,8 +662,8 @@ End Sub
 
 Private Function ParseDateTimeEx(Val As String) As Currency
 '
-' Чтение даты из строки формата ГГГГ-ММ-ДД чч:мм:сс.000
-' с точностью до микросекунды
+' Р§С‚РµРЅРёРµ РґР°С‚С‹ РёР· СЃС‚СЂРѕРєРё С„РѕСЂРјР°С‚Р° Р“Р“Р“Р“-РњРњ-Р”Р” С‡С‡:РјРј:СЃСЃ.000
+' СЃ С‚РѕС‡РЅРѕСЃС‚СЊСЋ РґРѕ РјРёРєСЂРѕСЃРµРєСѓРЅРґС‹
 
 Dim parts() As String
 parts = Split(Val, ".")
@@ -674,16 +674,16 @@ End Function
 
 Public Sub Discrete2Excel()
 '
-' Преобразование набора дискретных сигналов в Excel, уоторый впоследствии можно сохранить в Comtrade
+' РџСЂРµРѕР±СЂР°Р·РѕРІР°РЅРёРµ РЅР°Р±РѕСЂР° РґРёСЃРєСЂРµС‚РЅС‹С… СЃРёРіРЅР°Р»РѕРІ РІ Excel, СѓРѕС‚РѕСЂС‹Р№ РІРїРѕСЃР»РµРґСЃС‚РІРёРё РјРѕР¶РЅРѕ СЃРѕС…СЂР°РЅРёС‚СЊ РІ Comtrade
 
 Dim objSigSheet As Variant
 If ActiveSheet.Name <> "Signals to Comtrade" Then
-  MsgBox "Должен быть выделен лист 'Signals to Comtrade'"
+  MsgBox "Р”РѕР»Р¶РµРЅ Р±С‹С‚СЊ РІС‹РґРµР»РµРЅ Р»РёСЃС‚ 'Signals to Comtrade'"
   Exit Sub
 End If
 Set objSigSheet = ActiveSheet
 
-' Создаем новый лист
+' РЎРѕР·РґР°РµРј РЅРѕРІС‹Р№ Р»РёСЃС‚
 Set objSheet = ActiveWorkbook.Worksheets.Add
 On Error GoTo err_sheet_exists
   Dim errSheetExists As Boolean
@@ -691,17 +691,17 @@ On Error GoTo err_sheet_exists
   errSheetExists = True
 err_sheet_exists:
   If Not errSheetExists Then
-    ' Если лист переименовать не удалось - хрен с ним
+    ' Р•СЃР»Рё Р»РёСЃС‚ РїРµСЂРµРёРјРµРЅРѕРІР°С‚СЊ РЅРµ СѓРґР°Р»РѕСЃСЊ - С…СЂРµРЅ СЃ РЅРёРј
   End If
 On Error GoTo 0
   
-objSheet.Cells(1, 1).Value = "Файл:": objSheet.Cells(1, 2).Value = "Дискретные сигналы"
+objSheet.Cells(1, 1).Value = "Р¤Р°Р№Р»:": objSheet.Cells(1, 2).Value = "Р”РёСЃРєСЂРµС‚РЅС‹Рµ СЃРёРіРЅР°Р»С‹"
 
-' Первая строка: Название объекта и идентификатор регистратора
-objSheet.Cells(2, 1).Value = "Наименование:": objSheet.Cells(2, 2).Value = "Дискреты"
-objSheet.Cells(3, 1).Value = "Номер:": objSheet.Cells(3, 2).Value = "123"
+' РџРµСЂРІР°СЏ СЃС‚СЂРѕРєР°: РќР°Р·РІР°РЅРёРµ РѕР±СЉРµРєС‚Р° Рё РёРґРµРЅС‚РёС„РёРєР°С‚РѕСЂ СЂРµРіРёСЃС‚СЂР°С‚РѕСЂР°
+objSheet.Cells(2, 1).Value = "РќР°РёРјРµРЅРѕРІР°РЅРёРµ:": objSheet.Cells(2, 2).Value = "Р”РёСЃРєСЂРµС‚С‹"
+objSheet.Cells(3, 1).Value = "РќРѕРјРµСЂ:": objSheet.Cells(3, 2).Value = "123"
 
-' Заголовки
+' Р—Р°РіРѕР»РѕРІРєРё
 objSheet.Cells(10, 1).Value = "SignalNo"
 objSheet.Cells(11, 1).Value = "SignalName"
 objSheet.Cells(12, 1).Value = "SignalPhase"
@@ -720,8 +720,8 @@ Dim F As Boolean
 ReDim Signals(0) As String
 ReDim LastSignal(0) As Integer
 
-' Считаем список сигналов без повторений
-For i = 2 To objSigSheet.UsedRange.Rows.Count ' первая строка - заголовки
+' РЎС‡РёС‚Р°РµРј СЃРїРёСЃРѕРє СЃРёРіРЅР°Р»РѕРІ Р±РµР· РїРѕРІС‚РѕСЂРµРЅРёР№
+For i = 2 To objSigSheet.UsedRange.Rows.Count ' РїРµСЂРІР°СЏ СЃС‚СЂРѕРєР° - Р·Р°РіРѕР»РѕРІРєРё
   If objSigSheet.Cells(i, 3).Value <> "" Then
     F = True
     If i > 2 Then
@@ -749,25 +749,25 @@ For i = LBound(Signals) To UBound(Signals)
   objSheet.Cells(12, i + 4).Value = 0          ' DefaultValue (Meas)
 Next
 
-objSheet.Cells(4, 1).Value = "Частота:": objSheet.Cells(4, 2).Value = 50
-objSheet.Cells(5, 1).Value = "Дискретизация:": objSheet.Cells(5, 2).Value = 1000
+objSheet.Cells(4, 1).Value = "Р§Р°СЃС‚РѕС‚Р°:": objSheet.Cells(4, 2).Value = 50
+objSheet.Cells(5, 1).Value = "Р”РёСЃРєСЂРµС‚РёР·Р°С†РёСЏ:": objSheet.Cells(5, 2).Value = 1000
 
-' Время старта / пуска
+' Р’СЂРµРјСЏ СЃС‚Р°СЂС‚Р° / РїСѓСЃРєР°
 Dim T As Currency
-T = ParseDateTimeEx(objSigSheet.Cells(2, 1).Value) - 0.1  ' -100 мс
-objSheet.Cells(7, 1).Value = "Дата/Время старта:":
+T = ParseDateTimeEx(objSigSheet.Cells(2, 1).Value) - 0.1  ' -100 РјСЃ
+objSheet.Cells(7, 1).Value = "Р”Р°С‚Р°/Р’СЂРµРјСЏ СЃС‚Р°СЂС‚Р°:":
 objSheet.Cells(7, 2).NumberFormat = "@"
 objSheet.Cells(7, 3).NumberFormat = "@"
 objSheet.Cells(7, 2).Value = Format(T / 86400, "MM\/dd\/yy")
 objSheet.Cells(7, 3).Value = Format(T / 86400, "HH:mm:ss") & "." & ((T - Fix(T)) * 1000000)
 
-objSheet.Cells(8, 1).Value = "Дата/Время пуска:":
+objSheet.Cells(8, 1).Value = "Р”Р°С‚Р°/Р’СЂРµРјСЏ РїСѓСЃРєР°:":
 objSheet.Cells(8, 2).NumberFormat = "@"
 objSheet.Cells(8, 3).NumberFormat = "@"
 objSheet.Cells(8, 2).Value = objSheet.Cells(7, 2).Value
 objSheet.Cells(8, 3).Value = objSheet.Cells(7, 3).Value
 
-' Отсчеты
+' РћС‚СЃС‡РµС‚С‹
 i = 1
 
 Dim StartTime As Currency
@@ -775,7 +775,7 @@ Dim StopTime As Currency
 Dim S As String
 
 StartTime = T
-StopTime = ParseDateTimeEx(objSigSheet.Cells(objSigSheet.UsedRange.Rows.Count, 1).Value) + 0.1 ' +100 мс
+StopTime = ParseDateTimeEx(objSigSheet.Cells(objSigSheet.UsedRange.Rows.Count, 1).Value) + 0.1 ' +100 РјСЃ
 k = 2
 
 For i = 0 To (StopTime - StartTime) * 1000
@@ -803,7 +803,7 @@ For i = 0 To (StopTime - StartTime) * 1000
  
 Next
 
-objSheet.Cells(6, 1).Value = "Отсчетов:"
+objSheet.Cells(6, 1).Value = "РћС‚СЃС‡РµС‚РѕРІ:"
 objSheet.Cells(6, 2).NumberFormat = "0"
 objSheet.Cells(6, 2).Formula = "=MAX(B20:B999999)"
 
@@ -813,7 +813,7 @@ End Sub
 
 Public Sub Comtrade2Excel()
 '
-' Запуск макроса: Чтение COMTRADE
+' Р—Р°РїСѓСЃРє РјР°РєСЂРѕСЃР°: Р§С‚РµРЅРёРµ COMTRADE
 
 Dim COMTRADEFile As String
 
@@ -822,17 +822,17 @@ COMTRADEFile = Application.GetOpenFilename("COMTRADE Files (*.cfg), *.cfg")
 Prepare
 Select Case OpenComtrade(COMTRADEFile)
   Case 1
-     MsgBox "Error, CFG файл не найден", vbOKOnly, "Error"
+     MsgBox "Error, CFG С„Р°Р№Р» РЅРµ РЅР°Р№РґРµРЅ", vbOKOnly, "Error"
   Case 2
-     MsgBox "Error, DAT файл не найден", vbOKOnly, "Error"
+     MsgBox "Error, DAT С„Р°Р№Р» РЅРµ РЅР°Р№РґРµРЅ", vbOKOnly, "Error"
   Case 3
-     MsgBox "Error, ошибка доступа к CFG файлу", vbOKOnly, "Error"
+     MsgBox "Error, РѕС€РёР±РєР° РґРѕСЃС‚СѓРїР° Рє CFG С„Р°Р№Р»Сѓ", vbOKOnly, "Error"
   Case 4
-     MsgBox "Error, лист с таким именем уже существует", vbOKOnly, "Error"
+     MsgBox "Error, Р»РёСЃС‚ СЃ С‚Р°РєРёРј РёРјРµРЅРµРј СѓР¶Рµ СЃСѓС‰РµСЃС‚РІСѓРµС‚", vbOKOnly, "Error"
   Case 5
-     MsgBox "Error, ошибка в формате DAT файла, должно быть ASCII или BINARY", vbOKOnly, "Error"
+     MsgBox "Error, РѕС€РёР±РєР° РІ С„РѕСЂРјР°С‚Рµ DAT С„Р°Р№Р»Р°, РґРѕР»Р¶РЅРѕ Р±С‹С‚СЊ ASCII РёР»Рё BINARY", vbOKOnly, "Error"
   Case 6
-     MsgBox "Error, ошибка при чтении DAT файла", vbOKOnly, "Error"
+     MsgBox "Error, РѕС€РёР±РєР° РїСЂРё С‡С‚РµРЅРёРё DAT С„Р°Р№Р»Р°", vbOKOnly, "Error"
 End Select
 Ended
 
@@ -841,7 +841,7 @@ End Sub
 
 Public Sub Excel2Comtrade()
 '
-' Запуск макроса: Запись COMTRADE
+' Р—Р°РїСѓСЃРє РјР°РєСЂРѕСЃР°: Р—Р°РїРёСЃСЊ COMTRADE
 
 Dim COMTRADEFile As String
 
@@ -850,9 +850,9 @@ COMTRADEFile = Application.GetSaveAsFilename(, "COMTRADE Files (*.cfg), *.cfg")
 Prepare
 Select Case SaveComtrade(COMTRADEFile)
   Case 1
-     MsgBox "Error, ошибка при записе CFG файла", vbOKOnly, "Error"
+     MsgBox "Error, РѕС€РёР±РєР° РїСЂРё Р·Р°РїРёСЃРµ CFG С„Р°Р№Р»Р°", vbOKOnly, "Error"
   Case 2
-     MsgBox "Error, ошибка при записе DAT файла", vbOKOnly, "Error"
+     MsgBox "Error, РѕС€РёР±РєР° РїСЂРё Р·Р°РїРёСЃРµ DAT С„Р°Р№Р»Р°", vbOKOnly, "Error"
 End Select
 Ended
 
