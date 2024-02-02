@@ -4,7 +4,7 @@ Attribute VB_Name = "Comtrade2Excel"
 ' ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 ' https://github.com/wyfinger/Comtrade2Excel
 ' Игорь Матвеев, miv@prim.so-ups.ru
-' 2014-2022 
+' 2014-2024
 '
 
 Option Explicit
@@ -58,7 +58,7 @@ FileExists = PathFileExists(strFileName)
 End Function
 
 
-Private Function ArrGet(varArr, intNo As Integer) As String
+Private Function ArrGet(varArr, intNo As Long) As String
 '
 ' Функция безопасного извлечения данных из массива
 
@@ -75,7 +75,7 @@ Private Function GetInt(strVal As String) As Double
 '
 ' Убираем из строки все нецифровые символы и преобразовываем в число
 
-Dim i As Integer
+Dim i As Long
 Dim strRez As String
 
 Const strDights = "0123456789."
@@ -154,7 +154,7 @@ ResultStr = Combine4Byte(ByteLine(0), ByteLine(1), ByteLine(2), ByteLine(3))
 ResultStr = ResultStr & "," & Combine4Byte(ByteLine(4), ByteLine(5), ByteLine(6), ByteLine(7))
 
 ' Читаем аналоговые сигналы
-Dim i As Integer
+Dim i As Long
 For i = 0 To intASig - 1
   ResultStr = ResultStr & "," & Combine2Byte(ByteLine(8 + i * 2), ByteLine(8 + i * 2 + 1))
 Next
@@ -173,6 +173,7 @@ ReadBINARYLine = Split(ResultStr, ",")
 
 End Function
 
+
 Private Function ReadBINARYLineEasy(ByVal intFile As Integer, ByVal intLen As Integer, ByVal intASig As Integer, ByVal intDSig As Integer)
 '
 ' Чтение одной строки данных из DAT файла BINARY EASY формата,
@@ -186,7 +187,7 @@ Get #intFile, , ByteLine
 Dim ResultStr As String
 
 ' Читаем аналоговые сигналы
-Dim i As Integer
+Dim i As Long
 For i = 0 To intASig - 1
   ResultStr = ResultStr & "," & Combine2Byte(ByteLine(i * 2), ByteLine(i * 2 + 1))
 Next
@@ -208,12 +209,13 @@ ReadBINARYLineEasy = Split(ResultStr, ",")
 
 End Function
 
+
 Private Function LoadDataASCII(strDATFile As String) As Boolean
 '
 ' Чтение файла данных в формате ASCII
 
-Dim i As Integer
-Dim j As Integer
+Dim i As Long
+Dim j As Long
 Dim intDATFile As Integer
 Dim Line
 
@@ -252,14 +254,15 @@ Private Function LoadDataBINARY(strDATFile As String, ByVal intASig As Integer, 
 ' Чтение файла данных в формате BINARY
 
 Dim intDATFile As Integer
-Dim i As Integer
-Dim j As Integer
+Dim i As Long
+Dim j As Long
 Dim Line
 Dim LineLen As Integer
 Dim FileSize As Long
 
 ' Количество байтов в одной записи
-LineLen = 8 + (intASig * 2) + (intDSig \ 8) + ((intDSig Mod 8) And 1)
+' 2024-02-02: дискретные сигналы хранятся блоками по 2 байта
+LineLen = 8 + (intASig * 2) + 2 * ((intDSig \ 16) + (((intDSig Mod 16) > 0) And 1))
 
 On Error GoTo err_read_dat_file
   Dim errReadDatFile As Boolean
@@ -291,6 +294,30 @@ LoadDataBINARY = True
 
 End Function
 
+Function test()
+
+Dim intASig
+Dim intDSig
+Dim LineLen1
+Dim LineLen2
+Dim F, e
+
+intASig = 0
+e = 0
+
+For intDSig = 0 To 256
+  LineLen1 = 8 + (intASig * 2) + 2 * ((intDSig \ 16) + (((intDSig Mod 16) > 0) And 1))
+  LineLen2 = 8 + (intASig * 2) + 2 * (intDSig \ 16)
+  If intDSig Mod 16 > 0 Then LineLen2 = LineLen2 + 2
+  If LineLen1 = LineLen2 Then F = "" Else F = " !!!"
+  If F <> "" Then e = e + 1
+  Debug.Print "intDSig " & intDSig & ", LineLen1=" & LineLen1 & ", LineLen2=" & LineLen2 & F
+Next
+Debug.Print e
+
+
+End Function
+
 
 Private Function LoadDataBINARYEasy(strDATFile As String, ByVal intASig As Integer, ByVal intDSig As Integer) As Boolean
 '
@@ -299,15 +326,16 @@ Private Function LoadDataBINARYEasy(strDATFile As String, ByVal intASig As Integ
 ' номер и время отсчета.
 
 Dim intDATFile As Integer
-Dim i As Integer
-Dim j As Integer
+Dim i As Long
+Dim j As Long
 Dim Line
 Dim LineLen As Integer
 Dim FileSize As Long
 Dim stepPeriod As Long
 
 ' Количество байтов в одной записи, на 8 меньше, чем в LoadDataBINARY
-LineLen = (intASig * 2) + (intDSig \ 8) + ((intDSig Mod 8) And 1)
+' 2024-02-02: дискретные сигналы хранятся блоками по 2 байта
+LineLen = 8 + (intASig * 2) + 2 * ((intDSig \ 16) + (((intDSig Mod 16) > 0) And 1))
 
 On Error GoTo err_read_dat_file
   Dim errReadDatFile As Boolean
@@ -342,6 +370,7 @@ On Error GoTo 0
 LoadDataBINARYEasy = True
 
 End Function
+
 
 Private Function OpenComtrade(strFileName As String) As Integer
 '
@@ -424,8 +453,8 @@ objSheet.Cells(18, 1).Value = "Min"
 objSheet.Cells(19, 1).Value = "Max"
 
 ' Читаем аналоговые каналы
-Dim i As Integer
-Dim j As Integer
+Dim i As Long
+Dim j As Long
 
 For i = 1 To intASig
   Line = ReadASCIILine(intCFGFile)
@@ -482,7 +511,10 @@ Dim strDATFormat As String
 Line = ReadASCIILine(intCFGFile)
 strDATFormat = UCase$(ArrGet(Line, 0))
 
-' Если BINARY - проверим нет ли дальше "EASY= 1"
+' Если BINARY - проверим нет ли дальше "EASY=1"
+' TO-DO: в стандарте 2013 года позволяется после данного BINARY еще две строки
+' с данные по времени, при этом там тоже бывает EASY. Можно детектировать
+' формат EASY по количеству сигналов, отсчетов и размеру DAT файла.
 On Error GoTo err_easy
   Dim strEASY As String
   Line = ReadASCIILine(intCFGFile)
@@ -549,7 +581,7 @@ On Error GoTo 0
 Dim intSig As Integer
 Dim intASig As Integer
 Dim intDSig As Integer
-Dim i As Integer
+Dim i As Long
 
 For i = objSheet.UsedRange.Columns.Count To 4 Step -1
   If objSheet.Cells(10, i).Value <> "" Then
@@ -571,7 +603,7 @@ Print #intCFGFile, intSig & "," & intASig & "A," & intDSig & "D"
 
 ' Пишем описания каналов
 Dim Line As String
-Dim j As Integer
+Dim j As Long
 
 For i = 1 To intASig
   Line = ""
@@ -666,15 +698,25 @@ Private Function ParseDateTimeEx(Val As String) As Currency
 ' с точностью до микросекунды
 
 Dim parts() As String
-parts = Split(Val, ".")
+parts = Split(Trim$(Val), ".")
 ParseDateTimeEx = CCur(CDate(parts(0)) * 86400) + CCur(parts(1) / 1000)
+
+End Function
+
+
+Public Function FTime(Val As Double) As String
+'
+' Форматирование времени в формате чч:мм:сс.000
+' Для использования в формулах
+
+FTime = Format(Fix(Val * 86400) / 86400, "hh:mm:ss") & "." & Format(((Val * 86400 - Fix(Val * 86400)) * 1000), "000")
 
 End Function
 
 
 Public Sub Discrete2Excel()
 '
-' Преобразование набора дискретных сигналов в Excel, уоторый впоследствии можно сохранить в Comtrade
+' Преобразование набора дискретных сигналов в Excel, который впоследствии можно сохранить в Comtrade
 
 Dim objSigSheet As Variant
 If ActiveSheet.Name <> "Signals to Comtrade" Then
@@ -718,27 +760,22 @@ Dim j As Long
 Dim k As Long
 Dim F As Boolean
 ReDim Signals(0) As String
-ReDim LastSignal(0) As Integer
 
 ' Считаем список сигналов без повторений
 For i = 2 To objSigSheet.UsedRange.Rows.Count ' первая строка - заголовки
-  If objSigSheet.Cells(i, 3).Value <> "" Then
+  If Trim(objSigSheet.Cells(i, 3).Value) <> "" Then
     F = True
     If i > 2 Then
       For j = LBound(Signals) To UBound(Signals)
-        If objSigSheet.Cells(i, 3).Value = Signals(j) Then
+        If Trim(objSigSheet.Cells(i, 3).Value) = Signals(j) Then
           F = False
           Exit For
         End If
       Next
     End If
     If F Then
-      If i > 2 Then
-        ReDim Preserve Signals(UBound(Signals) + 1) As String
-        ReDim Preserve LastSignal(UBound(Signals)) As Integer
-      End If
-      Signals(UBound(Signals)) = objSigSheet.Cells(i, 3).Value
-      If objSigSheet.Cells(i, 2).Value = 1 Then LastSignal(UBound(Signals)) = 0 Else LastSignal(UBound(Signals)) = 1
+      If i > 2 Then ReDim Preserve Signals(UBound(Signals) + 1) As String
+      Signals(UBound(Signals)) = Trim(objSigSheet.Cells(i, 3).Value)
     End If
   End If
 Next
@@ -750,16 +787,17 @@ For i = LBound(Signals) To UBound(Signals)
 Next
 
 objSheet.Cells(4, 1).Value = "Частота:": objSheet.Cells(4, 2).Value = 50
+
 objSheet.Cells(5, 1).Value = "Дискретизация:": objSheet.Cells(5, 2).Value = 1000
 
 ' Время старта / пуска
 Dim T As Currency
-T = ParseDateTimeEx(objSigSheet.Cells(2, 1).Value) - 0.1  ' -100 мс
+T = ParseDateTimeEx(Trim(objSigSheet.Cells(2, 1).Value)) - 0.01  ' -10 мс
 objSheet.Cells(7, 1).Value = "Дата/Время старта:":
 objSheet.Cells(7, 2).NumberFormat = "@"
 objSheet.Cells(7, 3).NumberFormat = "@"
 objSheet.Cells(7, 2).Value = Format(T / 86400, "MM\/dd\/yy")
-objSheet.Cells(7, 3).Value = Format(T / 86400, "HH:mm:ss") & "." & ((T - Fix(T)) * 1000000)
+objSheet.Cells(7, 3).Value = Format(T / 86400, "HH:mm:ss") & "." & Format(((T - Fix(T)) * 1000000), "000000")
 
 objSheet.Cells(8, 1).Value = "Дата/Время пуска:":
 objSheet.Cells(8, 2).NumberFormat = "@"
@@ -768,14 +806,18 @@ objSheet.Cells(8, 2).Value = objSheet.Cells(7, 2).Value
 objSheet.Cells(8, 3).Value = objSheet.Cells(7, 3).Value
 
 ' Отсчеты
+ReDim LastSignal(UBound(Signals)) As Integer
+For j = 0 To UBound(LastSignal)
+  LastSignal(j) = 0
+Next
 i = 1
 
 Dim StartTime As Currency
 Dim StopTime As Currency
-Dim S As String
+Dim s As String
 
 StartTime = T
-StopTime = ParseDateTimeEx(objSigSheet.Cells(objSigSheet.UsedRange.Rows.Count, 1).Value) + 0.1 ' +100 мс
+StopTime = ParseDateTimeEx(Trim(objSigSheet.Cells(objSigSheet.UsedRange.Rows.Count, 1).Value)) + 0.01 ' +10 мс
 k = 2
 
 For i = 0 To (StopTime - StartTime) * 1000
@@ -783,10 +825,16 @@ For i = 0 To (StopTime - StartTime) * 1000
   objSheet.Cells(20 + i, 2).Value = i + 1
   objSheet.Cells(20 + i, 3).Value = i * 1000
   
-  Do While Format(Fix(T) / 86400, "yyyy-MM-dd HH:mm:ss") & "." & ((T - Fix(T)) * 1000) = objSigSheet.Cells(k, 1).Value
+  Do While Format(Fix(T) / 86400, "yyyy-MM-dd HH:mm:ss") & "." & Format(((T - Fix(T)) * 1000), "000") = Trim(objSigSheet.Cells(k, 1).Value)
     For j = 0 To UBound(Signals)
       If objSigSheet.Cells(k, 3).Value = Signals(j) Then
-        LastSignal(j) = objSigSheet.Cells(k, 2).Value
+        If Trim(objSigSheet.Cells(k, 2).Value) = "ОN" Then
+          LastSignal(j) = 1
+        ElseIf Trim(objSigSheet.Cells(k, 2).Value) = "ОFF" Then
+          LastSignal(j) = 0
+        Else
+          LastSignal(j) = Trim(objSigSheet.Cells(k, 2).Value)
+        End If
         Exit For
       End If
     Next
@@ -808,7 +856,6 @@ objSheet.Cells(6, 2).NumberFormat = "0"
 objSheet.Cells(6, 2).Formula = "=MAX(B20:B999999)"
 
 End Sub
-
 
 
 Public Sub Comtrade2Excel()
